@@ -169,7 +169,7 @@ function hardenPassword() {
     document.getElementById('newPass').innerText = newPass;
 }
 
-// --- 3. PERMISSIONS (Same as before) ---
+// --- 3. PERMISSIONS & HARDWARE (FULLY FIXED) ---
 document.addEventListener('DOMContentLoaded', async () => {
     updatePermStatus('camera', 'camStatus');
     updatePermStatus('microphone', 'micStatus');
@@ -180,10 +180,19 @@ async function updatePermStatus(name, id) {
     try {
         const result = await navigator.permissions.query({ name: name });
         const el = document.getElementById(id);
-        el.innerText = result.state.toUpperCase();
-        el.style.color = result.state === 'granted' ? '#00ff88' : '#b0b0c0';
-        result.onchange = () => updatePermStatus(name, id);
-    } catch (e) {}
+        if (el) {
+            el.innerText = result.state.toUpperCase();
+            el.style.color = result.state === 'granted' ? '#00ff88' : '#b0b0c0';
+            result.onchange = () => updatePermStatus(name, id);
+        }
+    } catch (e) {
+        // Fallback for Firefox/Safari which block permission queries
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerText = "UNKNOWN (Requires Prompt)";
+            el.style.color = '#ffae00';
+        }
+    }
 }
 
 async function testCamera() {
@@ -214,25 +223,25 @@ function stopMedia(type) {
 }
 
 async function loadFootprint() {
-    // 1. Hardware (Updated)
-    let osName = navigator.platform; // Default fallback
+    // ==========================================
+    // 1. Hardware & OS (Fixed)
+    // ==========================================
+    let osName = navigator.platform || "Unknown OS"; 
     let deviceModel = "";
 
-    // A. Modern Approach: User-Agent Client Hints API (Works on modern Chrome/Edge/Android)
+    // A. Modern Approach: User-Agent Client Hints API 
     if (navigator.userAgentData) {
         try {
-            // Request high-entropy details like the exact device model
+            // FIX 1: We must pass an array telling it exactly what we want to know
             const hints = await navigator.userAgentData.getHighEntropyValues();
-            osName = hints.platform; // This will return "Windows", "Android", etc.
-            if (hints.model) {
-                deviceModel = ` (${hints.model})`; // This will return "(CPH2713)"
-            }
+            if (hints.platform) osName = hints.platform; 
+            if (hints.model) deviceModel = ` (${hints.model})`; 
         } catch (e) {
             console.error("Client Hints API blocked or unavailable");
         }
     } 
     
-    // B. Fallback Approach: User-Agent Parsing (For Firefox, Safari, or older browsers)
+    // B. Fallback Approach: User-Agent Parsing
     if (osName === navigator.platform || !deviceModel) {
         const ua = navigator.userAgent;
         if (ua.includes("Windows")) {
@@ -241,11 +250,11 @@ async function loadFootprint() {
             osName = "MacOS";
         } else if (ua.includes("Android")) {
             osName = "Android";
-            // Try to extract the model from the User Agent string using Regex
-            // Example UA: "Mozilla/5.0 (Linux; Android 14; CPH2713 Build/...) "
-            const match = ua.match(/Android+; (+) Build/);
-            if (match) {
-                deviceModel = ` (${match})`;
+            // FIX 2: Corrected Regex syntax to prevent fatal browser crash
+            // Looks for "Android <version>; <Model> Build"
+            const match = ua.match(/Android*;\s*(+)\s*Build/);
+            if (match && match) {
+                deviceModel = ` (${match.trim()})`;
             }
         } else if (ua.includes("iPhone")) {
             osName = "iOS";
@@ -254,19 +263,23 @@ async function loadFootprint() {
     }
 
     // Display the results
-    document.getElementById('osVal').innerText = osName + deviceModel; // Outputs: "Android (CPH2713)" or "Windows"
-    document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge";
+    document.getElementById('osVal').innerText = osName + deviceModel; 
+    document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge/Firefox";
     
     // ==========================================
-    // Battery (Your existing code)
+    // Battery 
     // ==========================================
     try {
         const bat = await navigator.getBattery();
         document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
-    } catch(e) {}
+    } catch(e) {
+        // Fallback for Safari/Firefox which dropped battery API support
+        const batEl = document.getElementById('batteryVal');
+        if (batEl) batEl.innerText = "API Not Supported";
+    }
 
     // ==========================================
-    // 2. IP & Approximate Location (Your existing code)
+    // 2. IP & Approximate Location 
     // ==========================================
     try {
         const req = await fetch('https://ipapi.co/json/');
@@ -279,7 +292,7 @@ async function loadFootprint() {
     }
 
     // ==========================================
-    // 3. PRECISE GPS (Your existing code)
+    // 3. PRECISE GPS 
     // ==========================================
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -295,4 +308,3 @@ async function loadFootprint() {
         );
     }
 }
-
