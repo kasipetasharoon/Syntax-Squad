@@ -213,14 +213,19 @@ function stopMedia(type) {
     location.reload(); 
 }
 
-// --- 4. FOOTPRINT & LOCATION (SMART UPDATE) ---
+// --- 4. FOOTPRINT & LOCATION (FIXED MODEL DETECTION) ---
 
 async function loadFootprint() {
-    // 1. Hardware & OS (Standard)
-    document.getElementById('osVal').innerText = navigator.platform;
+    // 1. OS & Platform
+    // If it says "Linux armv81", we change it to "Android" for better looks
+    let platform = navigator.platform;
+    if (platform.includes('arm') || platform.includes('Linux')) {
+        platform = "Android (Linux Kernel)";
+    }
+    document.getElementById('osVal').innerText = platform;
     document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge";
     
-    // Battery Status
+    // 2. BATTERY
     try {
         const bat = await navigator.getBattery();
         document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
@@ -228,47 +233,44 @@ async function loadFootprint() {
         document.getElementById('batteryVal').innerText = "Protected";
     }
 
-    // 2. DEVICE MODEL (The "Pro" Fix)
-    // We try to use the modern 'User-Agent Client Hints' API
-    const modelBox = document.getElementById('osVal'); // We'll append model here
+    // 3. DEVICE MODEL (The Critical Fix)
+    const modelBox = document.getElementById('osVal'); // We will append model here
     
+    // Check if the modern API exists
     if (navigator.userAgentData) {
         try {
-            // Ask browser for the specific "High Entropy" value (The Model)
-            const uaData = await navigator.userAgentData.getHighEntropyValues(["model", "platformVersion"]);
+            // We explicitly ask for the 'model' high-entropy value
+            const uaData = await navigator.userAgentData.getHighEntropyValues(["model"]);
             const model = uaData.model;
             
             if (model) {
-                // If we get it, show it!
-                modelBox.innerText += ` (${model})`; 
-                modelBox.style.color = "#00f3ff"; // Highlight it in neon
+                // SUCCESS: We got the real model (e.g., CPH2753)
+                modelBox.innerHTML = `Android <span style="color:#00f3ff">(${model})</span>`;
             } else {
-                modelBox.innerText += " (Model Hidden)";
+                modelBox.innerText = "Android (Model Hidden)";
             }
         } catch (e) {
-            // Fallback for browsers that block this
-            modelBox.innerText += " (Generic)";
+            modelBox.innerText = "Android (Generic)";
         }
     } else {
-        // Fallback for iOS/Firefox (They don't support this API yet)
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        if (isIOS) modelBox.innerText += " (Apple Device)";
+        // Fallback for iPhones (iOS doesn't support the new API yet)
+        if (/iPhone|iPad/.test(navigator.userAgent)) {
+            modelBox.innerText = "iOS Device (Apple)";
+        }
     }
 
-    // 3. IP & Approximate Location
+    // 4. IP & Approximate Location
     try {
         const req = await fetch('https://ipapi.co/json/');
         const data = await req.json();
         document.getElementById('ipAddress').innerText = data.ip;
         document.getElementById('location').innerText = `${data.city}, ${data.country_name}`;
-        
-        // Initial fallback lat/long from IP
         document.getElementById('latlong').innerText = `${data.latitude}, ${data.longitude} (IP Approx)`;
     } catch (e) {
         document.getElementById('ipAddress').innerText = "AdBlocker";
     }
 
-    // 4. PRECISE GPS (High Accuracy)
+    // 5. PRECISE GPS
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
