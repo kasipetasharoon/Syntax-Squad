@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax Squad | Cyber Defense</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="background-grid"></div>
+    <div class="background-overlay"></div>
+
+    <header>
+        <div class="logo-box">
+            <i class="fas fa-shield-alt logo-icon"></i>
+            <div>
+                <h1>SYNTAX SQUAD</h1>
+                <p class="subtitle">CYBER EXPO TOOLKIT</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- SECTION 1: Phishing Detector -->
+        <section class="cyber-card">
+            <div class="card-header">
+                <h2><i class="fas fa-search-location"></i> Phishing Detector</h2>
+                <div class="status-dot"></div>
+            </div>
+            <p class="instruction">Paste any URL. Our fuzzy logic detects evasive links (e.g., <code>insta.gram.com</code>).</p>
+            
+            <div class="input-wrapper">
+                <input type="text" id="urlInput" placeholder="Paste link here..." autocomplete="off">
+                <button class="action-btn" onclick="analyzeLink()">SCAN NOW</button>
+            </div>
+
+            <div id="urlResult" class="result-panel hidden">
+                <div id="resultHeader"></div>
+                <div class="result-details">
+                    <p id="resultDesc"></p>
+                    <p class="small-code" id="detectedUrl"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Password Studio (UPDATED) -->
+        <section class="cyber-card">
+            <div class="card-header">
+                <h2><i class="fas fa-key"></i> Password Analytics</h2>
+            </div>
+            
+            <div class="input-wrapper">
+                <input type="text" id="passInput" placeholder="Type a password..." onkeyup="checkStrength()">
+            </div>
+            
+            <div class="strength-meter">
+                <div id="strengthBar" class="fill"></div>
+            </div>
+            
+            <div class="stats-row">
+                <span id="strengthText">Strength: --</span>
+                <span id="crackTime">Time to Crack: --</span>
+            </div>
+
+            <!-- New Feedback Section -->
+            <ul id="passFeedback" class="feedback-list"></ul>
+
+            <div class="harden-section">
+                <button class="secondary-btn" onclick="hardenPassword()">
+                    <i class="fas fa-lock"></i> GENERATE STRONG PASS
+                </button>
+                <div id="hardenedDisplay" class="hidden">
+                    <span>RECOMMENDATION:</span>
+                    <code id="newPass"></code>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Permission Simulator -->
+        <section class="cyber-card">
+            <div class="card-header">
+                <h2><i class="fas fa-user-secret"></i> Permission Audit</h2>
+            </div>
+            <p class="instruction">Test how browsers grant access to hardware.</p>
+
+            <div class="perm-controls">
+                <div class="perm-box">
+                    <div class="perm-info">
+                        <span><i class="fas fa-camera"></i> Camera</span>
+                        <span id="camStatus" class="badge">Checking...</span>
+                    </div>
+                    <button class="test-btn" onclick="testCamera()">TEST CAMERA</button>
+                </div>
+
+                <div class="perm-box">
+                    <div class="perm-info">
+                        <span><i class="fas fa-microphone"></i> Microphone</span>
+                        <span id="micStatus" class="badge">Checking...</span>
+                    </div>
+                    <button class="test-btn" onclick="testMic()">TEST MIC</button>
+                </div>
+            </div>
+
+            <div id="camContainer" class="media-container hidden">
+                <div class="rec-dot"></div>
+                <video id="videoFeed" autoplay playsinline></video>
+                <button class="stop-btn" onclick="stopMedia('video')">STOP CAMERA</button>
+            </div>
+
+            <div id="micContainer" class="media-container hidden">
+                <div class="audio-wave">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                    <div class="bar"></div><div class="bar"></div>
+                </div>
+                <p style="color: #00f3ff; font-weight: bold;">MICROPHONE ACTIVE</p>
+                <button class="stop-btn" onclick="stopMedia('audio')">STOP MIC</button>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Digital Footprint (UPDATED) -->
+        <section class="cyber-card">
+            <div class="card-header">
+                <h2><i class="fas fa-fingerprint"></i> Digital Footprint</h2>
+            </div>
+            
+            <div class="grid-stats">
+                <div class="stat-box">
+                    <label>PUBLIC IP</label>
+                    <span id="ipAddress" class="neon-text">Scanning...</span>
+                </div>
+                <div class="stat-box">
+                    <label>LOCATION</label>
+                    <span id="location">Scanning...</span>
+                </div>
+                <!-- New Lat/Long Box -->
+                <div class="stat-box">
+                    <label>COORDS (LAT / LONG)</label>
+                    <span id="latlong">Requesting...</span>
+                </div>
+                <div class="stat-box">
+                    <label>OS / PLATFORM</label>
+                    <span id="osVal">--</span>
+                </div>
+                <div class="stat-box">
+                    <label>BROWSER</label>
+                    <span id="browserVal">--</span>
+                </div>
+                <div class="stat-box">
+                    <label>BATTERY</label>
+                    <span id="batteryVal">--</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>Developed by <strong>Syntax Squad</strong></p>
+        <p class="team-names">Sai Balaji &bull; Sharoon &bull; Sai Suchit</p>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
