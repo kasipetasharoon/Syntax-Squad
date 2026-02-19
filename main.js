@@ -213,20 +213,49 @@ function stopMedia(type) {
     location.reload(); 
 }
 
-// --- 4. FOOTPRINT & LOCATION (UPDATED) ---
+// --- 4. FOOTPRINT & LOCATION (SMART UPDATE) ---
 
 async function loadFootprint() {
-    // 1. Hardware
+    // 1. Hardware & OS (Standard)
     document.getElementById('osVal').innerText = navigator.platform;
     document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge";
     
-    // Battery
+    // Battery Status
     try {
         const bat = await navigator.getBattery();
         document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
-    } catch(e) {}
+    } catch(e) {
+        document.getElementById('batteryVal').innerText = "Protected";
+    }
 
-    // 2. IP & Approximate Location
+    // 2. DEVICE MODEL (The "Pro" Fix)
+    // We try to use the modern 'User-Agent Client Hints' API
+    const modelBox = document.getElementById('osVal'); // We'll append model here
+    
+    if (navigator.userAgentData) {
+        try {
+            // Ask browser for the specific "High Entropy" value (The Model)
+            const uaData = await navigator.userAgentData.getHighEntropyValues(["model", "platformVersion"]);
+            const model = uaData.model;
+            
+            if (model) {
+                // If we get it, show it!
+                modelBox.innerText += ` (${model})`; 
+                modelBox.style.color = "#00f3ff"; // Highlight it in neon
+            } else {
+                modelBox.innerText += " (Model Hidden)";
+            }
+        } catch (e) {
+            // Fallback for browsers that block this
+            modelBox.innerText += " (Generic)";
+        }
+    } else {
+        // Fallback for iOS/Firefox (They don't support this API yet)
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        if (isIOS) modelBox.innerText += " (Apple Device)";
+    }
+
+    // 3. IP & Approximate Location
     try {
         const req = await fetch('https://ipapi.co/json/');
         const data = await req.json();
@@ -239,19 +268,17 @@ async function loadFootprint() {
         document.getElementById('ipAddress').innerText = "AdBlocker";
     }
 
-    // 3. PRECISE GPS (High Accuracy)
-    // The browser will ask for permission here
+    // 4. PRECISE GPS (High Accuracy)
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const lat = position.coords.latitude.toFixed(5);
                 const lon = position.coords.longitude.toFixed(5);
                 document.getElementById('latlong').innerText = `${lat}, ${lon} (GPS Verified)`;
-                document.getElementById('latlong').style.color = '#00ff88'; // Green for verified
+                document.getElementById('latlong').style.color = '#00ff88'; 
             },
             (error) => {
-                console.log("GPS Denied or Unavailable");
-                // Keep the IP-based one
+                console.log("GPS Denied");
             }
         );
     }
