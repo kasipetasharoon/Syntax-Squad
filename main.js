@@ -8,8 +8,8 @@ const officialSites = {
     'google': 'google.com', 'gmail': 'google.com',
     'sbi': 'onlinesbi.sbi', 'amazon': 'amazon.in',
     'flipkart': 'flipkart.com', 'netflix': 'netflix.com',
-    'paytm': 'paytm.com', 'whatsapp': 'whatsapp.com',
-    'twitter': 'twitter.com', 'x': 'x.com', 'github':'github.com', 'youtube':'youtube.com',
+    'paytm': 'paytm.com', 'whatsapp': 'whatsapp.com','youtube':'youtube.com',
+    'twitter': 'twitter.com', 'x': 'x.com', 'github':'github.com',
     'hdfc': 'hdfcbank.com', 'icici': 'icicibank.com'
 };
 
@@ -169,7 +169,7 @@ function hardenPassword() {
     document.getElementById('newPass').innerText = newPass;
 }
 
-// --- 3. PERMISSIONS & HARDWARE (FULLY FIXED) ---
+// --- 3. PERMISSIONS (Same as before) ---
 document.addEventListener('DOMContentLoaded', async () => {
     updatePermStatus('camera', 'camStatus');
     updatePermStatus('microphone', 'micStatus');
@@ -180,19 +180,10 @@ async function updatePermStatus(name, id) {
     try {
         const result = await navigator.permissions.query({ name: name });
         const el = document.getElementById(id);
-        if (el) {
-            el.innerText = result.state.toUpperCase();
-            el.style.color = result.state === 'granted' ? '#00ff88' : '#b0b0c0';
-            result.onchange = () => updatePermStatus(name, id);
-        }
-    } catch (e) {
-        // Fallback for Firefox/Safari which block permission queries
-        const el = document.getElementById(id);
-        if (el) {
-            el.innerText = "UNKNOWN (Requires Prompt)";
-            el.style.color = '#ffae00';
-        }
-    }
+        el.innerText = result.state.toUpperCase();
+        el.style.color = result.state === 'granted' ? '#00ff88' : '#b0b0c0';
+        result.onchange = () => updatePermStatus(name, id);
+    } catch (e) {}
 }
 
 async function testCamera() {
@@ -222,88 +213,45 @@ function stopMedia(type) {
     location.reload(); 
 }
 
+// --- 4. FOOTPRINT & LOCATION (UPDATED) ---
+
 async function loadFootprint() {
-    // ==========================================
-    // 1. Hardware & OS (Fixed)
-    // ==========================================
-    let osName = navigator.platform || "Unknown OS"; 
-    let deviceModel = "";
-
-    // A. Modern Approach: User-Agent Client Hints API 
-    if (navigator.userAgentData) {
-        try {
-            // FIX 1: We must pass an array telling it exactly what we want to know
-            const hints = await navigator.userAgentData.getHighEntropyValues();
-            if (hints.platform) osName = hints.platform; 
-            if (hints.model) deviceModel = ` (${hints.model})`; 
-        } catch (e) {
-            console.error("Client Hints API blocked or unavailable");
-        }
-    } 
+    // 1. Hardware
+    document.getElementById('osVal').innerText = navigator.platform;
+    document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge";
     
-    // B. Fallback Approach: User-Agent Parsing
-    if (osName === navigator.platform || !deviceModel) {
-        const ua = navigator.userAgent;
-        if (ua.includes("Windows")) {
-            osName = "Windows";
-        } else if (ua.includes("Mac")) {
-            osName = "MacOS";
-        } else if (ua.includes("Android")) {
-            osName = "Android";
-            // FIX 2: Corrected Regex syntax to prevent fatal browser crash
-            // Looks for "Android <version>; <Model> Build"
-            const match = ua.match(/Android*;\s*(+)\s*Build/);
-            if (match && match) {
-                deviceModel = ` (${match.trim()})`;
-            }
-        } else if (ua.includes("iPhone")) {
-            osName = "iOS";
-            deviceModel = " (iPhone)";
-        }
-    }
-
-    // Display the results
-    document.getElementById('osVal').innerText = osName + deviceModel; 
-    document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge/Firefox";
-    
-    // ==========================================
-    // Battery 
-    // ==========================================
+    // Battery
     try {
         const bat = await navigator.getBattery();
         document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
-    } catch(e) {
-        // Fallback for Safari/Firefox which dropped battery API support
-        const batEl = document.getElementById('batteryVal');
-        if (batEl) batEl.innerText = "API Not Supported";
-    }
+    } catch(e) {}
 
-    // ==========================================
-    // 2. IP & Approximate Location 
-    // ==========================================
+    // 2. IP & Approximate Location
     try {
         const req = await fetch('https://ipapi.co/json/');
         const data = await req.json();
         document.getElementById('ipAddress').innerText = data.ip;
         document.getElementById('location').innerText = `${data.city}, ${data.country_name}`;
+        
+        // Initial fallback lat/long from IP
         document.getElementById('latlong').innerText = `${data.latitude}, ${data.longitude} (IP Approx)`;
     } catch (e) {
-        document.getElementById('ipAddress').innerText = "AdBlocker / Network Error";
+        document.getElementById('ipAddress').innerText = "AdBlocker";
     }
 
-    // ==========================================
-    // 3. PRECISE GPS 
-    // ==========================================
+    // 3. PRECISE GPS (High Accuracy)
+    // The browser will ask for permission here
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const lat = position.coords.latitude.toFixed(5);
                 const lon = position.coords.longitude.toFixed(5);
                 document.getElementById('latlong').innerText = `${lat}, ${lon} (GPS Verified)`;
-                document.getElementById('latlong').style.color = '#00ff88'; 
+                document.getElementById('latlong').style.color = '#00ff88'; // Green for verified
             },
             (error) => {
                 console.log("GPS Denied or Unavailable");
+                // Keep the IP-based one
             }
         );
     }
