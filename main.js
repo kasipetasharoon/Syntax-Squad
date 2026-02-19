@@ -213,10 +213,61 @@ function stopMedia(type) {
     location.reload(); 
 }
 
-// --- 4. FOOTPRINT & LOCATION (FINAL FIXED VERSION) ---
-
 async function loadFootprint() {
-    // 1. IP & Location (API)
+    // 1. Hardware (Updated)
+    let osName = navigator.platform; // Default fallback
+    let deviceModel = "";
+
+    // A. Modern Approach: User-Agent Client Hints API (Works on modern Chrome/Edge/Android)
+    if (navigator.userAgentData) {
+        try {
+            // Request high-entropy details like the exact device model
+            const hints = await navigator.userAgentData.getHighEntropyValues();
+            osName = hints.platform; // This will return "Windows", "Android", etc.
+            if (hints.model) {
+                deviceModel = ` (${hints.model})`; // This will return "(CPH2713)"
+            }
+        } catch (e) {
+            console.error("Client Hints API blocked or unavailable");
+        }
+    } 
+    
+    // B. Fallback Approach: User-Agent Parsing (For Firefox, Safari, or older browsers)
+    if (osName === navigator.platform || !deviceModel) {
+        const ua = navigator.userAgent;
+        if (ua.includes("Windows")) {
+            osName = "Windows";
+        } else if (ua.includes("Mac")) {
+            osName = "MacOS";
+        } else if (ua.includes("Android")) {
+            osName = "Android";
+            // Try to extract the model from the User Agent string using Regex
+            // Example UA: "Mozilla/5.0 (Linux; Android 14; CPH2713 Build/...) "
+            const match = ua.match(/Android+; (+) Build/);
+            if (match) {
+                deviceModel = ` (${match})`;
+            }
+        } else if (ua.includes("iPhone")) {
+            osName = "iOS";
+            deviceModel = " (iPhone)";
+        }
+    }
+
+    // Display the results
+    document.getElementById('osVal').innerText = osName + deviceModel; // Outputs: "Android (CPH2713)" or "Windows"
+    document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge";
+    
+    // ==========================================
+    // Battery (Your existing code)
+    // ==========================================
+    try {
+        const bat = await navigator.getBattery();
+        document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
+    } catch(e) {}
+
+    // ==========================================
+    // 2. IP & Approximate Location (Your existing code)
+    // ==========================================
     try {
         const req = await fetch('https://ipapi.co/json/');
         const data = await req.json();
@@ -224,75 +275,23 @@ async function loadFootprint() {
         document.getElementById('location').innerText = `${data.city}, ${data.country_name}`;
         document.getElementById('latlong').innerText = `${data.latitude}, ${data.longitude} (IP Approx)`;
     } catch (e) {
-        document.getElementById('ipAddress').innerText = "AdBlocker";
+        document.getElementById('ipAddress').innerText = "AdBlocker / Network Error";
     }
 
-    // 2. Battery
-    try {
-        const bat = await navigator.getBattery();
-        document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
-    } catch(e) {
-        document.getElementById('batteryVal').innerText = "Protected";
-    }
-
-    // 3. DETECT MODEL & OS (The Fix)
-    const osBox = document.getElementById('osVal');
-    const browserBox = document.getElementById('browserVal');
-
-    // Method A: Modern Android (Client Hints) - The best way to get "CPH2753"
-    if (navigator.userAgentData) {
-        // Get basic info first
-        const platform = navigator.userAgentData.platform; // e.g., "Android" or "Windows"
-        
-        // Ask for the specific model
-        navigator.userAgentData.getHighEntropyValues(["model", "platformVersion"])
-            .then(ua => {
-                const model = ua.model; // This captures "CPH2753"
-                const version = ua.platformVersion;
-                
-                // Display Format: "Android 13 (CPH2753)"
-                if (model) {
-                    osBox.innerText = `${platform} ${version.split('.')[0]} (${model})`;
-                    osBox.style.color = "#00f3ff"; // Neon highlight
-                } else {
-                    osBox.innerText = `${platform} (Model Hidden)`;
-                }
-            });
-            
-        // Get Browser Brand (e.g., Chrome)
-        const brands = navigator.userAgentData.brands;
-        if(brands && brands.length > 0) {
-            browserBox.innerText = brands[0].brand + " (Modern)";
-        }
-
-    } else {
-        // Method B: Legacy / Apple / Laptop Fallback
-        // Laptops don't have "Models" usually, just OS names.
-        
-        let os = "Unknown";
-        const ua = navigator.userAgent;
-
-        if (ua.indexOf("Win") !== -1) os = "Windows";
-        else if (ua.indexOf("Mac") !== -1) os = "MacOS";
-        else if (ua.indexOf("Linux") !== -1) os = "Linux";
-        else if (ua.indexOf("Android") !== -1) os = "Android";
-        else if (ua.indexOf("iPhone") !== -1) os = "iOS (iPhone)";
-
-        osBox.innerText = os;
-        browserBox.innerText = "Legacy Engine";
-    }
-
-    // 4. GPS
+    // ==========================================
+    // 3. PRECISE GPS (Your existing code)
+    // ==========================================
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const lat = pos.coords.latitude.toFixed(5);
-                const lon = pos.coords.longitude.toFixed(5);
+            (position) => {
+                const lat = position.coords.latitude.toFixed(5);
+                const lon = position.coords.longitude.toFixed(5);
                 document.getElementById('latlong').innerText = `${lat}, ${lon} (GPS Verified)`;
                 document.getElementById('latlong').style.color = '#00ff88'; 
             },
-            (err) => console.log("GPS Denied")
+            (error) => {
+                console.log("GPS Denied or Unavailable");
+            }
         );
     }
 }
-
