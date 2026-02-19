@@ -9,7 +9,7 @@ const officialSites = {
     'sbi': 'onlinesbi.sbi', 'amazon': 'amazon.in',
     'flipkart': 'flipkart.com', 'netflix': 'netflix.com',
     'paytm': 'paytm.com', 'whatsapp': 'whatsapp.com',
-    'twitter': 'twitter.com', 'x': 'x.com', 'github':'github.com',
+    'twitter': 'twitter.com', 'x': 'x.com', 'github':'github.com', 'youtube':'youtube.com',
     'hdfc': 'hdfcbank.com', 'icici': 'icicibank.com'
 };
 
@@ -295,3 +295,4 @@ async function loadFootprint() {
         );
     }
 }
+
