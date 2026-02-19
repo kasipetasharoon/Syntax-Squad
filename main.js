@@ -213,53 +213,10 @@ function stopMedia(type) {
     location.reload(); 
 }
 
-// --- 4. FOOTPRINT & LOCATION (FIXED MODEL DETECTION) ---
+// --- 4. FOOTPRINT & LOCATION (FINAL FIXED VERSION) ---
 
 async function loadFootprint() {
-    // 1. OS & Platform
-    // If it says "Linux armv81", we change it to "Android" for better looks
-    let platform = navigator.platform;
-    if (platform.includes('arm') || platform.includes('Linux')) {
-        platform = "Android (Linux Kernel)";
-    }
-    document.getElementById('osVal').innerText = platform;
-    document.getElementById('browserVal').innerText = navigator.vendor || "Chrome/Edge";
-    
-    // 2. BATTERY
-    try {
-        const bat = await navigator.getBattery();
-        document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
-    } catch(e) {
-        document.getElementById('batteryVal').innerText = "Protected";
-    }
-
-    // 3. DEVICE MODEL (The Critical Fix)
-    const modelBox = document.getElementById('osVal'); // We will append model here
-    
-    // Check if the modern API exists
-    if (navigator.userAgentData) {
-        try {
-            // We explicitly ask for the 'model' high-entropy value
-            const uaData = await navigator.userAgentData.getHighEntropyValues(["model"]);
-            const model = uaData.model;
-            
-            if (model) {
-                // SUCCESS: We got the real model (e.g., CPH2753)
-                modelBox.innerHTML = `Android <span style="color:#00f3ff">(${model})</span>`;
-            } else {
-                modelBox.innerText = "Android (Model Hidden)";
-            }
-        } catch (e) {
-            modelBox.innerText = "Android (Generic)";
-        }
-    } else {
-        // Fallback for iPhones (iOS doesn't support the new API yet)
-        if (/iPhone|iPad/.test(navigator.userAgent)) {
-            modelBox.innerText = "iOS Device (Apple)";
-        }
-    }
-
-    // 4. IP & Approximate Location
+    // 1. IP & Location (API)
     try {
         const req = await fetch('https://ipapi.co/json/');
         const data = await req.json();
@@ -270,18 +227,72 @@ async function loadFootprint() {
         document.getElementById('ipAddress').innerText = "AdBlocker";
     }
 
-    // 5. PRECISE GPS
+    // 2. Battery
+    try {
+        const bat = await navigator.getBattery();
+        document.getElementById('batteryVal').innerText = Math.round(bat.level * 100) + '%';
+    } catch(e) {
+        document.getElementById('batteryVal').innerText = "Protected";
+    }
+
+    // 3. DETECT MODEL & OS (The Fix)
+    const osBox = document.getElementById('osVal');
+    const browserBox = document.getElementById('browserVal');
+
+    // Method A: Modern Android (Client Hints) - The best way to get "CPH2753"
+    if (navigator.userAgentData) {
+        // Get basic info first
+        const platform = navigator.userAgentData.platform; // e.g., "Android" or "Windows"
+        
+        // Ask for the specific model
+        navigator.userAgentData.getHighEntropyValues(["model", "platformVersion"])
+            .then(ua => {
+                const model = ua.model; // This captures "CPH2753"
+                const version = ua.platformVersion;
+                
+                // Display Format: "Android 13 (CPH2753)"
+                if (model) {
+                    osBox.innerText = `${platform} ${version.split('.')[0]} (${model})`;
+                    osBox.style.color = "#00f3ff"; // Neon highlight
+                } else {
+                    osBox.innerText = `${platform} (Model Hidden)`;
+                }
+            });
+            
+        // Get Browser Brand (e.g., Chrome)
+        const brands = navigator.userAgentData.brands;
+        if(brands && brands.length > 0) {
+            browserBox.innerText = brands[0].brand + " (Modern)";
+        }
+
+    } else {
+        // Method B: Legacy / Apple / Laptop Fallback
+        // Laptops don't have "Models" usually, just OS names.
+        
+        let os = "Unknown";
+        const ua = navigator.userAgent;
+
+        if (ua.indexOf("Win") !== -1) os = "Windows";
+        else if (ua.indexOf("Mac") !== -1) os = "MacOS";
+        else if (ua.indexOf("Linux") !== -1) os = "Linux";
+        else if (ua.indexOf("Android") !== -1) os = "Android";
+        else if (ua.indexOf("iPhone") !== -1) os = "iOS (iPhone)";
+
+        osBox.innerText = os;
+        browserBox.innerText = "Legacy Engine";
+    }
+
+    // 4. GPS
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude.toFixed(5);
-                const lon = position.coords.longitude.toFixed(5);
+            (pos) => {
+                const lat = pos.coords.latitude.toFixed(5);
+                const lon = pos.coords.longitude.toFixed(5);
                 document.getElementById('latlong').innerText = `${lat}, ${lon} (GPS Verified)`;
                 document.getElementById('latlong').style.color = '#00ff88'; 
             },
-            (error) => {
-                console.log("GPS Denied");
-            }
+            (err) => console.log("GPS Denied")
         );
     }
 }
+
